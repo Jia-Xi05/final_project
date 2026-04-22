@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisionShield</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <nav class="nav">
+      <div class="brand">
+        <div class="brand-mark">◆</div>
+        <div class="brand-text">
+          <h1>VisionShield</h1>
+          <p>Image Risk Analysis</p>
+        </div>
+      </div>
+      <div class="nav-tag">Front-End Only</div>
+    </nav>
+
+    <main class="hero">
+      <div class="eyebrow">Minimal · Quiet · Refined</div>
+      <h2>Analyze images with a calm interface.</h2>
+      <p>
+        此首頁作為專題入口，支援貼上圖片網址或上傳本機圖片。
+      </p>
+
+      <section class="panel">
+        <div class="tabs">
+          <button class="tab-btn active" id="tab-url" type="button">輸入 URL</button>
+          <button class="tab-btn" id="tab-image" type="button">上傳圖片</button>
+        </div>
+
+        <div id="url-section">
+          <div class="section-label">Image URL</div>
+          <div class="form-group">
+            <label for="imageUrl">圖片網址</label>
+            <input id="imageUrl" class="input" type="url" placeholder="https://example.com/image.jpg" />
+          </div>
+          <div class="form-group">
+            <label for="urlNote">備註說明（選填）</label>
+            <textarea id="urlNote" class="textarea" placeholder="可輸入來源或補充資訊"></textarea>
+          </div>
+        </div>
+
+        <div id="image-section" class="hidden">
+          <div class="section-label">Local Upload</div>
+          <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">⬒</div>
+            <div class="upload-title">拖曳圖片到此處</div>
+            <div class="upload-subtitle">或點擊按鈕選擇檔案。支援 JPG、PNG。</div>
+            <label for="imageFile" class="file-btn">選擇圖片</label>
+            <input id="imageFile" class="file-input" type="file" accept="image/*" />
+
+            <div class="preview-box" id="previewBox">
+              <img id="previewImg" class="preview-img" alt="預覽圖片" />
+              <div class="preview-meta">
+                <h4 id="fileName">未選擇檔案</h4>
+                <p id="fileInfo">檔案資訊將顯示於此。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary-btn" id="analyzeBtn" type="button">開始分析</button>
+          <button class="ghost-btn" id="resetBtn" type="button">清除內容</button>
+        </div>
+
+        <div class="result" id="resultBox">
+          <strong id="resultTitle">系統提示</strong>
+          <p id="resultText"></p>
+        </div>
+
+        <div class="note">
+          目前為前端展示版本。後續可直接將圖片網址或檔案串接至後端模型流程。
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./js/app.js"></script>
+</body>
+</html>
