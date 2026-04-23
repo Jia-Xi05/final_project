@@ -11,6 +11,8 @@ runs/*
 !runs/.gitkeep
 
 .env
+.ipynb_checkpoints/
+modules/notebooks/*.ipynb
 
 .DS_Store
 Thumbs.db
