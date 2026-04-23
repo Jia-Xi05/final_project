@@ -3,135 +3,214 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VisionShield | YOLO + SCRFD</title>
+  <title>VisionShield | Routed Multimodal Analysis</title>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
-  <div class="container">
-    <nav class="nav">
-      <div class="brand">
-        <div class="brand-mark">VS</div>
-        <div class="brand-text">
-          <h1>VisionShield</h1>
-          <p>LLM Scam Detection Demo</p>
-        </div>
+  <div class="page-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Graduation Project Dashboard</div>
+        <h1>VisionShield Routed Multimodal Analysis Console</h1>
+        <p class="lead">
+          The project now follows the designed architecture: YOLOv8 and SCRFD route the image first, then Module A
+          handles OpenCLIP and SerpAPI similarity analysis, Module C handles OCR, ROI evidence, and source lookup,
+          and the aggregator produces the final decision.
+        </p>
       </div>
-      <div class="nav-tag">YOLO + SCRFD</div>
-    </nav>
+      <div class="topbar-badge">Full Pipeline Ready</div>
+    </header>
 
-    <main class="hero">
-      <div class="eyebrow">Scam Detection Pipeline</div>
-      <h2>Upload one image to test object and face detection.</h2>
-      <p>
-        This step focuses on local image upload, YOLO object detection, and SCRFD face detection.
-        The annotated result overlays both pipelines so you can verify the vision stage before adding OCR or URL capture.
-      </p>
-
-      <section class="panel">
-        <div class="tabs">
-          <button class="tab-btn" id="tab-url" type="button" disabled>URL Mode (Next)</button>
-          <button class="tab-btn active" id="tab-image" type="button">Image Upload</button>
+    <main class="workspace">
+      <section class="hero-panel">
+        <div class="panel-head">
+          <div>
+            <div class="section-kicker">Input</div>
+            <h2>Upload an image to run the complete A+B+C pipeline</h2>
+          </div>
         </div>
 
-        <div id="image-section">
-          <div class="section-label">Local Upload</div>
-          <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">IMG</div>
-            <div class="upload-title">Drag an image here or choose a file</div>
-            <div class="upload-subtitle">
-              Supports JPG, PNG, and WEBP. The image will be sent to <code>/api/analyze/yolo</code>.
-            </div>
-            <label for="imageFile" class="file-btn">Choose Image</label>
-            <input id="imageFile" class="file-input" type="file" accept="image/*" />
+        <div class="upload-card" id="uploadArea">
+          <div class="upload-copy">
+            <span class="upload-icon">Router</span>
+            <h3>Drop a file here or choose an image</h3>
+            <p>The frontend will send the image to <code>/api/analyze/full</code> and render router, Module A, Module C, and the final aggregator result.</p>
+          </div>
+          <label class="file-btn" for="imageFile">Choose Image</label>
+          <input id="imageFile" class="file-input" type="file" accept="image/*" />
 
-            <div class="preview-box" id="previewBox">
-              <img id="previewImg" class="preview-img" alt="Preview image" />
-              <div class="preview-meta">
-                <h4 id="fileName">No file selected</h4>
-                <p id="fileInfo">Please upload a test image.</p>
-              </div>
+          <div class="preview-box" id="previewBox">
+            <img id="previewImg" class="preview-img" alt="Preview image" />
+            <div class="preview-meta">
+              <h4 id="fileName">No file selected</h4>
+              <p id="fileInfo">Please upload a test image for the project demo.</p>
             </div>
           </div>
         </div>
 
-        <div class="actions">
-          <button class="primary-btn" id="analyzeBtn" type="button">Run Analysis</button>
+        <div class="action-row">
+          <button class="primary-btn" id="analyzeBtn" type="button">Run Full Analysis</button>
           <button class="ghost-btn" id="resetBtn" type="button">Reset</button>
         </div>
 
-        <div class="status-row">
-          <div class="result" id="resultBox">
-            <strong id="resultTitle">System Message</strong>
-            <p id="resultText"></p>
-          </div>
+        <div class="result-banner" id="resultBox">
+          <strong id="resultTitle">System Message</strong>
+          <p id="resultText"></p>
+        </div>
+      </section>
+
+      <section class="dashboard hidden" id="resultsPanel">
+        <div class="summary-grid">
+          <article class="metric-card emphasis">
+            <span class="metric-label">Final Verdict</span>
+            <strong id="authenticityLabel">-</strong>
+            <p id="headlineText">Awaiting analysis.</p>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Risk Index</span>
+            <strong id="riskScorePercent">0</strong>
+            <p id="riskLevelText">Risk level: -</p>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Objects / Faces</span>
+            <strong id="visionCounts">0 / 0</strong>
+            <p>Module A + B structural evidence</p>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Report Source</span>
+            <strong id="reportSource">-</strong>
+            <p id="modulePipelineName">Router + Module A + Module C + Aggregator</p>
+          </article>
         </div>
 
-        <section class="results-panel hidden" id="resultsPanel">
-          <div class="result-summary">
-            <div class="summary-card">
-              <span class="summary-label">Module</span>
-              <strong id="moduleName">-</strong>
+        <div class="module-grid">
+          <article class="module-card">
+            <div class="module-title-row">
+              <div>
+                <span class="module-tag">Router</span>
+                <h3>YOLOv8 + SCRFD</h3>
+              </div>
+              <strong id="moduleAStatus">-</strong>
             </div>
-            <div class="summary-card">
-              <span class="summary-label">Object Count</span>
-              <strong id="detectionCount">0</strong>
+            <p id="moduleASummary" class="module-summary">Awaiting output.</p>
+            <div class="chip-list" id="moduleAChips"></div>
+          </article>
+
+          <article class="module-card">
+            <div class="module-title-row">
+              <div>
+                <span class="module-tag">Module A</span>
+                <h3>OpenCLIP + SerpAPI</h3>
+              </div>
+              <strong id="moduleBStatus">-</strong>
             </div>
-            <div class="summary-card">
-              <span class="summary-label">Face Count</span>
-              <strong id="faceCount">0</strong>
+            <p id="moduleBSummary" class="module-summary">Awaiting output.</p>
+            <div class="chip-list" id="moduleBChips"></div>
+          </article>
+
+          <article class="module-card">
+            <div class="module-title-row">
+              <div>
+                <span class="module-tag">Module C</span>
+                <h3>OCR + ROI + SerpAPI</h3>
+              </div>
+              <strong id="moduleCStatus">-</strong>
             </div>
-          </div>
+            <p id="moduleCSummary" class="module-summary">Awaiting output.</p>
+            <div class="chip-list" id="moduleCChips"></div>
+          </article>
+        </div>
 
-          <div class="image-grid">
-            <figure class="image-card">
-              <figcaption>Original Image</figcaption>
-              <img id="originalResultImg" alt="Original image" />
-            </figure>
-            <figure class="image-card">
-              <figcaption>Annotated Result</figcaption>
-              <img id="annotatedResultImg" alt="Annotated image" />
-            </figure>
-          </div>
+        <div class="evidence-layout">
+          <article class="panel-card">
+            <div class="section-kicker">Visual Result</div>
+            <div class="image-grid">
+              <figure class="image-card">
+                <figcaption>Original</figcaption>
+                <img id="originalResultImg" alt="Original image" />
+              </figure>
+              <figure class="image-card">
+                <figcaption>Annotated Router Output</figcaption>
+                <img id="annotatedResultImg" alt="Annotated image" />
+              </figure>
+            </div>
+          </article>
 
-          <div class="table-wrap">
-            <table class="detection-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Class</th>
-                  <th>Confidence</th>
-                  <th>BBox</th>
-                </tr>
-              </thead>
-              <tbody id="detectionTableBody">
-                <tr>
-                  <td colspan="4">No object detections yet.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <article class="panel-card">
+            <div class="section-kicker">Aggregator</div>
+            <h3>Final Decision Report</h3>
+            <p id="reportText" class="report-block">Awaiting report.</p>
+            <h4>OCR Text</h4>
+            <p id="ocrText" class="mono-block">-</p>
+            <h4>Evidence Highlights</h4>
+            <ul id="evidenceList" class="evidence-list"></ul>
+          </article>
+        </div>
 
-          <div class="table-wrap">
-            <table class="detection-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Confidence</th>
-                  <th>BBox</th>
-                  <th>Landmarks</th>
-                </tr>
-              </thead>
-              <tbody id="faceTableBody">
-                <tr>
-                  <td colspan="4">No face detections yet.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <div class="table-stack">
+          <article class="panel-card">
+            <div class="section-kicker">Router Output</div>
+            <h3>Detected Objects</h3>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Class</th>
+                    <th>Confidence</th>
+                    <th>BBox</th>
+                  </tr>
+                </thead>
+                <tbody id="detectionTableBody">
+                  <tr>
+                    <td colspan="4">No detections yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
 
-        <div class="note">
-          The local pipeline now uses YOLO for objects and SCRFD for faces. Heavy local-only model branches were removed to keep testing lightweight and stable.
+          <article class="panel-card">
+            <div class="section-kicker">Router Output</div>
+            <h3>Detected Faces</h3>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Confidence</th>
+                    <th>BBox</th>
+                    <th>Landmarks</th>
+                  </tr>
+                </thead>
+                <tbody id="faceTableBody">
+                  <tr>
+                    <td colspan="4">No faces yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel-card">
+            <div class="section-kicker">Module A Output</div>
+            <h3>OpenCLIP Semantic Scores</h3>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Label</th>
+                    <th>Score</th>
+                  </tr>
+                </thead>
+                <tbody id="visionScoreTableBody">
+                  <tr>
+                    <td colspan="2">No visual-semantic result yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
         </div>
       </section>
     </main>

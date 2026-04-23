@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+
+input/*
+!input/.gitkeep
+
+outputs/*
+!outputs/.gitkeep
+
+runs/*
+!runs/.gitkeep
+
+.env
+
+.DS_Store
+Thumbs.db

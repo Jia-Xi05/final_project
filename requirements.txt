@@ -1,0 +1,14 @@
+flask
+numpy
+opencv-python
+onnxruntime
+pillow
+torch
+torchvision
+python-dotenv
+requests
+google-genai
+open-clip-torch
+paddlepaddle
+paddleocr
+serpapi
