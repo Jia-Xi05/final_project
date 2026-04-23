@@ -1,32 +1,22 @@
-const tabUrl = document.getElementById('tab-url');
-const tabImage = document.getElementById('tab-image');
-const urlSection = document.getElementById('url-section');
-const imageSection = document.getElementById('image-section');
-const imageUrlInput = document.getElementById('imageUrl');
-const urlNoteInput = document.getElementById('urlNote');
-const imageFileInput = document.getElementById('imageFile');
-const uploadArea = document.getElementById('uploadArea');
-const previewBox = document.getElementById('previewBox');
-const previewImg = document.getElementById('previewImg');
-const fileName = document.getElementById('fileName');
-const fileInfo = document.getElementById('fileInfo');
-const analyzeBtn = document.getElementById('analyzeBtn');
-const resetBtn = document.getElementById('resetBtn');
-const resultBox = document.getElementById('resultBox');
-const resultTitle = document.getElementById('resultTitle');
-const resultText = document.getElementById('resultText');
-
-let activeMode = 'url';
-
-function switchTab(mode) {
-  activeMode = mode;
-  const isUrl = mode === 'url';
-  tabUrl.classList.toggle('active', isUrl);
-  tabImage.classList.toggle('active', !isUrl);
-  urlSection.classList.toggle('hidden', !isUrl);
-  imageSection.classList.toggle('hidden', isUrl);
-  hideResult();
-}
+const imageFileInput = document.getElementById("imageFile");
+const uploadArea = document.getElementById("uploadArea");
+const previewBox = document.getElementById("previewBox");
+const previewImg = document.getElementById("previewImg");
+const fileName = document.getElementById("fileName");
+const fileInfo = document.getElementById("fileInfo");
+const analyzeBtn = document.getElementById("analyzeBtn");
+const resetBtn = document.getElementById("resetBtn");
+const resultBox = document.getElementById("resultBox");
+const resultTitle = document.getElementById("resultTitle");
+const resultText = document.getElementById("resultText");
+const resultsPanel = document.getElementById("resultsPanel");
+const moduleName = document.getElementById("moduleName");
+const detectionCount = document.getElementById("detectionCount");
+const faceCount = document.getElementById("faceCount");
+const originalResultImg = document.getElementById("originalResultImg");
+const annotatedResultImg = document.getElementById("annotatedResultImg");
+const detectionTableBody = document.getElementById("detectionTableBody");
+const faceTableBody = document.getElementById("faceTableBody");
 
 function formatSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -34,112 +24,221 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
+function formatScore(score) {
+  return `${(Number(score) * 100).toFixed(2)}%`;
+}
+
 function showResult(title, text, isError = false) {
   resultTitle.textContent = title;
   resultText.textContent = text;
-  resultBox.classList.add('show');
-  resultBox.classList.toggle('error', isError);
+  resultBox.classList.add("show");
+  resultBox.classList.toggle("error", isError);
 }
 
 function hideResult() {
-  resultBox.classList.remove('show', 'error');
+  resultBox.classList.remove("show", "error");
+}
+
+function clearImage(imgElement) {
+  imgElement.removeAttribute("src");
+}
+
+function hideAnalysisResults() {
+  resultsPanel.classList.add("hidden");
+  moduleName.textContent = "-";
+  detectionCount.textContent = "0";
+  faceCount.textContent = "0";
+  clearImage(originalResultImg);
+  clearImage(annotatedResultImg);
+  detectionTableBody.innerHTML = `
+    <tr>
+      <td colspan="4">No object detections yet.</td>
+    </tr>
+  `;
+  faceTableBody.innerHTML = `
+    <tr>
+      <td colspan="4">No face detections yet.</td>
+    </tr>
+  `;
 }
 
 function loadFilePreview(file) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = (e) => {
-    previewImg.src = e.target.result;
+  reader.onload = (event) => {
+    previewImg.src = event.target.result;
     fileName.textContent = file.name;
-    fileInfo.textContent = `格式：${file.type || '未知'} ｜ 大小：${formatSize(file.size)}`;
-    previewBox.classList.add('show');
+    fileInfo.textContent = `${file.type || "unknown"} | ${formatSize(file.size)}`;
+    previewBox.classList.add("show");
   };
   reader.readAsDataURL(file);
 }
 
-function resetAll() {
-  imageUrlInput.value = '';
-  urlNoteInput.value = '';
-  imageFileInput.value = '';
-  previewImg.src = '';
-  previewBox.classList.remove('show');
-  fileName.textContent = '未選擇檔案';
-  fileInfo.textContent = '檔案資訊將顯示於此。';
-  hideResult();
-  switchTab('url');
+function renderDetectionTable(detections) {
+  if (!detections.length) {
+    detectionTableBody.innerHTML = `
+      <tr>
+        <td colspan="4">No objects detected.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  detectionTableBody.innerHTML = detections
+    .map((detection, index) => {
+      const bbox = Array.isArray(detection.bbox) ? detection.bbox.join(", ") : "-";
+      const className = detection.class_name || `class_${detection.class_id ?? "?"}`;
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${className}</td>
+          <td>${formatScore(detection.score)}</td>
+          <td>[${bbox}]</td>
+        </tr>
+      `;
+    })
+    .join("");
 }
 
-tabUrl.addEventListener('click', () => switchTab('url'));
-tabImage.addEventListener('click', () => switchTab('image'));
-
-imageFileInput.addEventListener('change', (event) => {
-  const file = event.target.files[0];
-  loadFilePreview(file);
-  if (file) hideResult();
-});
-
-['dragenter', 'dragover'].forEach((eventName) => {
-  uploadArea.addEventListener(eventName, (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    uploadArea.classList.add('dragover');
-  });
-});
-
-['dragleave', 'drop'].forEach((eventName) => {
-  uploadArea.addEventListener(eventName, (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    uploadArea.classList.remove('dragover');
-  });
-});
-
-uploadArea.addEventListener('drop', (e) => {
-  const files = e.dataTransfer.files;
-  if (files && files[0] && files[0].type.startsWith('image/')) {
-    imageFileInput.files = files;
-    loadFilePreview(files[0]);
-    hideResult();
-  } else {
-    showResult('格式不支援', '請拖曳圖片檔案，例如 JPG、PNG 或 WEBP。', true);
+function renderFaceTable(faceDetections) {
+  if (!faceDetections.length) {
+    faceTableBody.innerHTML = `
+      <tr>
+        <td colspan="4">No faces detected.</td>
+      </tr>
+    `;
+    return;
   }
-});
 
-analyzeBtn.addEventListener('click', () => {
-  if (activeMode === 'url') {
-    const imageUrl = imageUrlInput.value.trim();
-    const note = urlNoteInput.value.trim();
+  faceTableBody.innerHTML = faceDetections
+    .map((detection, index) => {
+      const bbox = Array.isArray(detection.bbox) ? detection.bbox.join(", ") : "-";
+      const landmarks = Array.isArray(detection.landmarks)
+        ? detection.landmarks.map((point) => `(${point[0]}, ${point[1]})`).join(" ")
+        : "-";
 
-    if (!imageUrl) {
-      showResult('缺少圖片網址', '請先輸入要分析的圖片 URL。', true);
-      return;
-    }
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${formatScore(detection.score)}</td>
+          <td>[${bbox}]</td>
+          <td>${landmarks}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function renderAnalysisResult(result) {
+  moduleName.textContent = result.module || "yolo";
+  detectionCount.textContent = String(result.num_detections ?? 0);
+  faceCount.textContent = String(result.num_faces ?? 0);
+  originalResultImg.src = result.original_image_url;
+  annotatedResultImg.src = result.annotated_image_url;
+  renderDetectionTable(result.detections || []);
+  renderFaceTable(result.face_detections || []);
+  resultsPanel.classList.remove("hidden");
+}
+
+function resetAll() {
+  imageFileInput.value = "";
+  clearImage(previewImg);
+  previewBox.classList.remove("show");
+  fileName.textContent = "No file selected";
+  fileInfo.textContent = "Please upload a test image.";
+  hideResult();
+  hideAnalysisResults();
+  analyzeBtn.disabled = false;
+  analyzeBtn.textContent = "Run Analysis";
+}
+
+async function analyzeImage() {
+  const file = imageFileInput.files[0];
+  if (!file) {
+    showResult("No Image", "Please select an image before running analysis.", true);
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = "Analyzing...";
+  hideAnalysisResults();
+  showResult("Processing", "Running YOLO object detection and SCRFD face detection.");
+
+  try {
+    const response = await fetch("/api/analyze/yolo", {
+      method: "POST",
+      body: formData,
+    });
+
+    const rawText = await response.text();
+    let payload = null;
 
     try {
-      new URL(imageUrl);
+      payload = rawText ? JSON.parse(rawText) : null;
     } catch {
-      showResult('網址格式錯誤', '請輸入有效的圖片連結。', true);
-      return;
+      throw new Error(rawText || `Backend returned invalid JSON. HTTP status: ${response.status}`);
     }
 
-    showResult(
-      '已建立分析請求',
-      `目前已接收圖片網址。${note ? ' 備註內容也已一併記錄。' : ''}`
-    );
-  } else {
-    const file = imageFileInput.files[0];
-
-    if (!file) {
-      showResult('尚未上傳圖片', '請先選擇或拖曳一張圖片。', true);
-      return;
+    if (!response.ok || payload.status !== "success") {
+      throw new Error(payload?.message || "Analysis failed.");
     }
 
+    renderAnalysisResult(payload);
     showResult(
-      '圖片已準備完成',
-      `已載入「${file.name}」，檔案大小為 ${formatSize(file.size)}。`
+      "Completed",
+      `Detected ${payload.num_detections ?? 0} objects and ${payload.num_faces ?? 0} faces.`
     );
+  } catch (error) {
+    showResult("Analysis Failed", error.message || "Unable to connect to the backend API.", true);
+  } finally {
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = "Run Analysis";
   }
+}
+
+imageFileInput.addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  loadFilePreview(file);
+  hideResult();
+  hideAnalysisResults();
 });
 
-resetBtn.addEventListener('click', resetAll);
+["dragenter", "dragover"].forEach((eventName) => {
+  uploadArea.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    uploadArea.classList.add("dragover");
+  });
+});
+
+["dragleave", "drop"].forEach((eventName) => {
+  uploadArea.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    uploadArea.classList.remove("dragover");
+  });
+});
+
+uploadArea.addEventListener("drop", (event) => {
+  const files = event.dataTransfer.files;
+  const file = files && files[0];
+
+  if (file && file.type.startsWith("image/")) {
+    imageFileInput.files = files;
+    loadFilePreview(file);
+    hideResult();
+    hideAnalysisResults();
+    return;
+  }
+
+  showResult("Unsupported File", "Please drop a JPG, PNG, or WEBP image.", true);
+});
+
+analyzeBtn.addEventListener("click", analyzeImage);
+resetBtn.addEventListener("click", resetAll);
+
+hideAnalysisResults();

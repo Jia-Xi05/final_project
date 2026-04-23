@@ -10,45 +10,21 @@ PathLike = Union[str, Path]
 BBoxLike = Sequence[Union[int, float]]
 
 
-#把檔案路徑 → 變成圖片陣列
 def load_image(image_path: PathLike, color_mode: int = cv2.IMREAD_COLOR) -> np.ndarray:
-    """Load an image from disk.
-
-    Args:
-        image_path: Path to the image file.
-        color_mode: OpenCV read mode. Defaults to cv2.IMREAD_COLOR.
-
-    Returns:
-        Image as a NumPy array.
-
-    Raises:
-        FileNotFoundError: If the image path does not exist.
-        ValueError: If OpenCV fails to decode the image.
-    """
+    """Load an image from disk with Windows Unicode-path support."""
     image_path = Path(image_path)
     if not image_path.exists():
         raise FileNotFoundError(f"Image not found: {image_path}")
 
-    image = cv2.imread(str(image_path), color_mode)
+    image_bytes = np.fromfile(str(image_path), dtype=np.uint8)
+    image = cv2.imdecode(image_bytes, color_mode)
     if image is None:
         raise ValueError(f"Failed to load image: {image_path}")
     return image
 
-#把記憶體裡的圖片存回硬碟。
+
 def save_image(output_path: PathLike, image: np.ndarray, create_dirs: bool = True) -> Path:
-    """Save an image to disk.
-
-    Args:
-        output_path: Destination file path.
-        image: Image array in OpenCV-compatible format.
-        create_dirs: Whether to create parent folders automatically.
-
-    Returns:
-        Final output path.
-
-    Raises:
-        ValueError: If the image is empty or OpenCV fails to save it.
-    """
+    """Save an image to disk with Windows Unicode-path support."""
     if image is None or image.size == 0:
         raise ValueError("Cannot save an empty image.")
 
@@ -56,9 +32,12 @@ def save_image(output_path: PathLike, image: np.ndarray, create_dirs: bool = Tru
     if create_dirs:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    success = cv2.imwrite(str(output_path), image)
+    suffix = output_path.suffix or ".jpg"
+    success, encoded = cv2.imencode(suffix, image)
     if not success:
         raise ValueError(f"Failed to save image: {output_path}")
+
+    encoded.tofile(str(output_path))
     return output_path
 
 
@@ -79,13 +58,7 @@ def resize_image(
     size: Union[int, Tuple[int, int]],
     interpolation: int = cv2.INTER_LINEAR,
 ) -> np.ndarray:
-    """Resize an image.
-
-    Args:
-        image: Input image.
-        size: Either a single integer for square resize, or (width, height).
-        interpolation: OpenCV interpolation method.
-    """
+    """Resize an image."""
     _validate_image(image)
 
     if isinstance(size, int):
@@ -98,27 +71,14 @@ def resize_image(
 
     return cv2.resize(image, (int(width), int(height)), interpolation=interpolation)
 
-#根據 bounding box，把圖片某一塊切出來。
+
 def crop_bbox(
     image: np.ndarray,
     bbox: BBoxLike,
     pad: int = 0,
     clip: bool = True,
 ) -> np.ndarray:
-    """Crop a region from an image using bounding box coordinates.
-
-    Args:
-        image: Input image.
-        bbox: Bounding box in (x1, y1, x2, y2) format.
-        pad: Extra pixels to pad around the bounding box.
-        clip: Whether to clip the bbox to image boundaries.
-
-    Returns:
-        Cropped image region.
-
-    Raises:
-        ValueError: If the bbox is invalid or crop is empty.
-    """
+    """Crop a region from an image using bounding box coordinates."""
     _validate_image(image)
     x1, y1, x2, y2 = _parse_bbox(bbox)
 
@@ -142,7 +102,7 @@ def crop_bbox(
         raise ValueError("Cropped image is empty.")
     return cropped
 
-#在圖片上畫框，必要時順便寫文字。
+
 def draw_bbox(
     image: np.ndarray,
     bbox: BBoxLike,
@@ -173,7 +133,7 @@ def draw_bbox(
         )
     return annotated
 
-#只畫文字，不畫框。
+
 def draw_text(
     image: np.ndarray,
     text: str,
@@ -197,7 +157,7 @@ def draw_text(
     )
     return annotated
 
-#檢查傳進來的圖片是不是合法。
+
 def _validate_image(image: np.ndarray) -> None:
     if image is None:
         raise ValueError("Image is None.")
@@ -206,14 +166,14 @@ def _validate_image(image: np.ndarray) -> None:
     if image.size == 0:
         raise ValueError("Image is empty.")
 
-#把 bbox 解析成標準格式 (x1, y1, x2, y2)，而且都轉成整數。
+
 def _parse_bbox(bbox: BBoxLike) -> Tuple[int, int, int, int]:
     if len(bbox) != 4:
         raise ValueError("bbox must contain exactly 4 values: (x1, y1, x2, y2)")
     x1, y1, x2, y2 = [int(round(float(v))) for v in bbox]
     return x1, y1, x2, y2
 
-#把 label 和 score 組成你要顯示的文字。
+
 def _build_label_text(label: Optional[str], score: Optional[float]) -> str:
     if label is None and score is None:
         return ""

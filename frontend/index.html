@@ -3,78 +3,135 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VisionShield</title>
+  <title>VisionShield | YOLO + SCRFD</title>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
   <div class="container">
     <nav class="nav">
       <div class="brand">
-        <div class="brand-mark">◆</div>
+        <div class="brand-mark">VS</div>
         <div class="brand-text">
           <h1>VisionShield</h1>
-          <p>Image Risk Analysis</p>
+          <p>LLM Scam Detection Demo</p>
         </div>
       </div>
-      <div class="nav-tag">Front-End Only</div>
+      <div class="nav-tag">YOLO + SCRFD</div>
     </nav>
 
     <main class="hero">
-      <div class="eyebrow">Minimal · Quiet · Refined</div>
-      <h2>Analyze images with a calm interface.</h2>
+      <div class="eyebrow">Scam Detection Pipeline</div>
+      <h2>Upload one image to test object and face detection.</h2>
       <p>
-        此首頁作為專題入口，支援貼上圖片網址或上傳本機圖片。
+        This step focuses on local image upload, YOLO object detection, and SCRFD face detection.
+        The annotated result overlays both pipelines so you can verify the vision stage before adding OCR or URL capture.
       </p>
 
       <section class="panel">
         <div class="tabs">
-          <button class="tab-btn active" id="tab-url" type="button">輸入 URL</button>
-          <button class="tab-btn" id="tab-image" type="button">上傳圖片</button>
+          <button class="tab-btn" id="tab-url" type="button" disabled>URL Mode (Next)</button>
+          <button class="tab-btn active" id="tab-image" type="button">Image Upload</button>
         </div>
 
-        <div id="url-section">
-          <div class="section-label">Image URL</div>
-          <div class="form-group">
-            <label for="imageUrl">圖片網址</label>
-            <input id="imageUrl" class="input" type="url" placeholder="https://example.com/image.jpg" />
-          </div>
-          <div class="form-group">
-            <label for="urlNote">備註說明（選填）</label>
-            <textarea id="urlNote" class="textarea" placeholder="可輸入來源或補充資訊"></textarea>
-          </div>
-        </div>
-
-        <div id="image-section" class="hidden">
+        <div id="image-section">
           <div class="section-label">Local Upload</div>
           <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">⬒</div>
-            <div class="upload-title">拖曳圖片到此處</div>
-            <div class="upload-subtitle">或點擊按鈕選擇檔案。支援 JPG、PNG。</div>
-            <label for="imageFile" class="file-btn">選擇圖片</label>
+            <div class="upload-icon">IMG</div>
+            <div class="upload-title">Drag an image here or choose a file</div>
+            <div class="upload-subtitle">
+              Supports JPG, PNG, and WEBP. The image will be sent to <code>/api/analyze/yolo</code>.
+            </div>
+            <label for="imageFile" class="file-btn">Choose Image</label>
             <input id="imageFile" class="file-input" type="file" accept="image/*" />
 
             <div class="preview-box" id="previewBox">
-              <img id="previewImg" class="preview-img" alt="預覽圖片" />
+              <img id="previewImg" class="preview-img" alt="Preview image" />
               <div class="preview-meta">
-                <h4 id="fileName">未選擇檔案</h4>
-                <p id="fileInfo">檔案資訊將顯示於此。</p>
+                <h4 id="fileName">No file selected</h4>
+                <p id="fileInfo">Please upload a test image.</p>
               </div>
             </div>
           </div>
         </div>
 
         <div class="actions">
-          <button class="primary-btn" id="analyzeBtn" type="button">開始分析</button>
-          <button class="ghost-btn" id="resetBtn" type="button">清除內容</button>
+          <button class="primary-btn" id="analyzeBtn" type="button">Run Analysis</button>
+          <button class="ghost-btn" id="resetBtn" type="button">Reset</button>
         </div>
 
-        <div class="result" id="resultBox">
-          <strong id="resultTitle">系統提示</strong>
-          <p id="resultText"></p>
+        <div class="status-row">
+          <div class="result" id="resultBox">
+            <strong id="resultTitle">System Message</strong>
+            <p id="resultText"></p>
+          </div>
         </div>
+
+        <section class="results-panel hidden" id="resultsPanel">
+          <div class="result-summary">
+            <div class="summary-card">
+              <span class="summary-label">Module</span>
+              <strong id="moduleName">-</strong>
+            </div>
+            <div class="summary-card">
+              <span class="summary-label">Object Count</span>
+              <strong id="detectionCount">0</strong>
+            </div>
+            <div class="summary-card">
+              <span class="summary-label">Face Count</span>
+              <strong id="faceCount">0</strong>
+            </div>
+          </div>
+
+          <div class="image-grid">
+            <figure class="image-card">
+              <figcaption>Original Image</figcaption>
+              <img id="originalResultImg" alt="Original image" />
+            </figure>
+            <figure class="image-card">
+              <figcaption>Annotated Result</figcaption>
+              <img id="annotatedResultImg" alt="Annotated image" />
+            </figure>
+          </div>
+
+          <div class="table-wrap">
+            <table class="detection-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Class</th>
+                  <th>Confidence</th>
+                  <th>BBox</th>
+                </tr>
+              </thead>
+              <tbody id="detectionTableBody">
+                <tr>
+                  <td colspan="4">No object detections yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-wrap">
+            <table class="detection-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Confidence</th>
+                  <th>BBox</th>
+                  <th>Landmarks</th>
+                </tr>
+              </thead>
+              <tbody id="faceTableBody">
+                <tr>
+                  <td colspan="4">No face detections yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <div class="note">
-          目前為前端展示版本。後續可直接將圖片網址或檔案串接至後端模型流程。
+          The local pipeline now uses YOLO for objects and SCRFD for faces. Heavy local-only model branches were removed to keep testing lightweight and stable.
         </div>
       </section>
     </main>
