@@ -26,18 +26,31 @@
         <div class="panel-head">
           <div>
             <div class="section-kicker">Input</div>
-            <h2>Upload an image to run the complete A+B+C pipeline</h2>
+            <h2>Choose image upload or URL to run the complete A+B+C pipeline</h2>
           </div>
         </div>
 
+        <div class="input-mode-switch" role="radiogroup" aria-label="Input mode">
+          <input type="radio" id="modeImage" name="inputMode" value="image" checked />
+          <label class="mode-pill" for="modeImage">Image Upload</label>
+          <input type="radio" id="modeUrl" name="inputMode" value="url" />
+          <label class="mode-pill" for="modeUrl">URL Analyze</label>
+        </div>
+
         <div class="upload-card" id="uploadArea">
-          <div class="upload-copy">
+          <div class="upload-copy" id="imageInputCopy">
             <span class="upload-icon">Router</span>
             <h3>Drop a file here or choose an image</h3>
             <p>The frontend will send the image to <code>/api/analyze/full</code> and render router, Module A, Module C, and the final aggregator result.</p>
           </div>
-          <label class="file-btn" for="imageFile">Choose Image</label>
+          <label class="file-btn" id="imagePickerBtn" for="imageFile">Choose Image</label>
           <input id="imageFile" class="file-input" type="file" accept="image/*" />
+
+          <div class="url-input-wrap hidden" id="urlInputWrap">
+            <label for="imageUrlInput">Image or page URL</label>
+            <input id="imageUrlInput" type="url" placeholder="https://example.com/page-or-image" />
+            <p>URL mode supports direct image links and web pages containing preview images.</p>
+          </div>
 
           <div class="preview-box" id="previewBox">
             <img id="previewImg" class="preview-img" alt="Preview image" />

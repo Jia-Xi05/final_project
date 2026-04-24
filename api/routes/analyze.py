@@ -6,6 +6,7 @@ from uuid import uuid4
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
 from api.services.pipeline_service import run_full_pipeline, run_scam_pipeline, run_yolo_pipeline
+from api.services.url_image_service import fetch_image_from_source_url, save_downloaded_image, validate_http_url
 from config.settings import INPUT_DIR, OUTPUT_DIR
 
 analyze_bp = Blueprint("analyze", __name__, url_prefix="/api")
@@ -14,6 +15,11 @@ analyze_bp = Blueprint("analyze", __name__, url_prefix="/api")
 @analyze_bp.route("/analyze/full", methods=["POST"])
 def analyze_full():
     return _handle_analysis(run_full_pipeline, "Full pipeline analyze failed")
+
+
+@analyze_bp.route("/analyze/full-url", methods=["POST"])
+def analyze_full_url():
+    return _handle_url_analysis(run_full_pipeline, "Full pipeline URL analyze failed")
 
 
 @analyze_bp.route("/analyze/yolo", methods=["POST"])
@@ -48,6 +54,22 @@ def _handle_analysis(pipeline_fn, log_message: str):
         return jsonify({"status": "error", "message": str(exc)}), 500
 
 
+def _handle_url_analysis(pipeline_fn, log_message: str):
+    try:
+        source_url = _extract_source_url()
+        image_bytes, resolved_image_url = fetch_image_from_source_url(source_url)
+        save_path, filename = save_downloaded_image(image_bytes, INPUT_DIR)
+        result = pipeline_fn(save_path)
+        result["annotated_image_url"] = f"/api/outputs/{result['annotated_filename']}"
+        result["original_image_url"] = f"/api/inputs/{filename}"
+        result["source_url"] = source_url
+        result["resolved_image_url"] = resolved_image_url
+        return jsonify(result)
+    except Exception as exc:
+        current_app.logger.exception(log_message)
+        return jsonify({"status": "error", "message": str(exc)}), 500
+
+
 def _save_uploaded_image() -> tuple[Path, str]:
     if "image" not in request.files:
         raise ValueError("No image file uploaded.")
@@ -61,3 +83,15 @@ def _save_uploaded_image() -> tuple[Path, str]:
     save_path = INPUT_DIR / filename
     file.save(save_path)
     return save_path, filename
+
+
+def _extract_source_url() -> str:
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        raise ValueError("Invalid JSON payload.")
+
+    raw_url = payload.get("url", "")
+    if not raw_url:
+        raise ValueError("No URL provided.")
+
+    return validate_http_url(str(raw_url))

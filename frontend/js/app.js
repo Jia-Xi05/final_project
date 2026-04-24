@@ -1,5 +1,11 @@
 const imageFileInput = document.getElementById("imageFile");
 const uploadArea = document.getElementById("uploadArea");
+const modeImageInput = document.getElementById("modeImage");
+const modeUrlInput = document.getElementById("modeUrl");
+const imageInputCopy = document.getElementById("imageInputCopy");
+const imagePickerBtn = document.getElementById("imagePickerBtn");
+const urlInputWrap = document.getElementById("urlInputWrap");
+const imageUrlInput = document.getElementById("imageUrlInput");
 const previewBox = document.getElementById("previewBox");
 const previewImg = document.getElementById("previewImg");
 const fileName = document.getElementById("fileName");
@@ -279,6 +285,7 @@ function renderAnalysisResult(result) {
 
 function resetAll() {
   imageFileInput.value = "";
+  imageUrlInput.value = "";
   clearImage(previewImg);
   previewBox.classList.remove("show");
   fileName.textContent = "No file selected";
@@ -287,6 +294,55 @@ function resetAll() {
   hideAnalysisResults();
   analyzeBtn.disabled = false;
   analyzeBtn.textContent = "Run Full Analysis";
+}
+
+function getCurrentMode() {
+  return modeUrlInput.checked ? "url" : "image";
+}
+
+function applyInputMode() {
+  const mode = getCurrentMode();
+  const isImageMode = mode === "image";
+
+  imageInputCopy.classList.toggle("hidden", !isImageMode);
+  imagePickerBtn.classList.toggle("hidden", !isImageMode);
+  urlInputWrap.classList.toggle("hidden", isImageMode);
+
+  uploadArea.classList.toggle("drag-enabled", isImageMode);
+  if (!isImageMode) {
+    imageFileInput.value = "";
+  } else {
+    imageUrlInput.value = "";
+  }
+
+  clearImage(previewImg);
+  previewBox.classList.remove("show");
+  fileName.textContent = isImageMode ? "No file selected" : "No URL selected";
+  fileInfo.textContent = isImageMode
+    ? "Please upload a test image for the project demo."
+    : "Paste a URL and run analysis.";
+  hideResult();
+  hideAnalysisResults();
+}
+
+function isValidHttpUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function loadUrlPreview(rawUrl) {
+  const url = (rawUrl || "").trim();
+  if (!url) return;
+  if (!isValidHttpUrl(url)) return;
+
+  previewImg.src = url;
+  fileName.textContent = "URL input";
+  fileInfo.textContent = url;
+  previewBox.classList.add("show");
 }
 
 async function analyzeImage() {
@@ -333,15 +389,90 @@ async function analyzeImage() {
   }
 }
 
+async function analyzeUrl() {
+  const url = imageUrlInput.value.trim();
+  if (!url) {
+    showResult("No URL", "Please enter an URL before running analysis.", true);
+    return;
+  }
+  if (!isValidHttpUrl(url)) {
+    showResult("Invalid URL", "URL must start with http:// or https://", true);
+    return;
+  }
+
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = "Analyzing...";
+  hideAnalysisResults();
+  showResult("Processing", "Fetching image from URL, then running router, Module A, Module C, and aggregator.");
+
+  try {
+    const response = await fetch("/api/analyze/full-url", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url }),
+    });
+
+    const rawText = await response.text();
+    let payload = null;
+
+    try {
+      payload = rawText ? JSON.parse(rawText) : null;
+    } catch {
+      throw new Error(rawText || `Backend returned invalid JSON. HTTP status: ${response.status}`);
+    }
+
+    if (!response.ok || payload.status !== "success") {
+      throw new Error(payload?.message || "URL analysis failed.");
+    }
+
+    renderAnalysisResult(payload);
+    showResult("Completed", payload.summary?.headline || "Full pipeline completed from URL.");
+  } catch (error) {
+    showResult("Analysis Failed", error.message || "Unable to connect to the backend API.", true);
+  } finally {
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = "Run Full Analysis";
+  }
+}
+
+async function analyzeByCurrentMode() {
+  if (getCurrentMode() === "url") {
+    await analyzeUrl();
+    return;
+  }
+  await analyzeImage();
+}
+
 imageFileInput.addEventListener("change", (event) => {
+  if (getCurrentMode() !== "image") return;
   const file = event.target.files[0];
   loadFilePreview(file);
   hideResult();
   hideAnalysisResults();
 });
 
+imageUrlInput.addEventListener("input", () => {
+  if (getCurrentMode() !== "url") return;
+  const url = imageUrlInput.value.trim();
+  if (!url) {
+    clearImage(previewImg);
+    previewBox.classList.remove("show");
+    fileName.textContent = "No URL selected";
+    fileInfo.textContent = "Paste a URL and run analysis.";
+    hideResult();
+    hideAnalysisResults();
+    return;
+  }
+  loadUrlPreview(url);
+  hideResult();
+  hideAnalysisResults();
+});
+
 ["dragenter", "dragover"].forEach((eventName) => {
   uploadArea.addEventListener(eventName, (event) => {
+    if (getCurrentMode() !== "image") return;
     event.preventDefault();
     event.stopPropagation();
     uploadArea.classList.add("dragover");
@@ -350,6 +481,7 @@ imageFileInput.addEventListener("change", (event) => {
 
 ["dragleave", "drop"].forEach((eventName) => {
   uploadArea.addEventListener(eventName, (event) => {
+    if (getCurrentMode() !== "image") return;
     event.preventDefault();
     event.stopPropagation();
     uploadArea.classList.remove("dragover");
@@ -357,6 +489,7 @@ imageFileInput.addEventListener("change", (event) => {
 });
 
 uploadArea.addEventListener("drop", (event) => {
+  if (getCurrentMode() !== "image") return;
   const files = event.dataTransfer.files;
   const file = files && files[0];
 
@@ -371,7 +504,10 @@ uploadArea.addEventListener("drop", (event) => {
   showResult("Unsupported File", "Please drop a JPG, PNG, or WEBP image.", true);
 });
 
-analyzeBtn.addEventListener("click", analyzeImage);
+modeImageInput.addEventListener("change", applyInputMode);
+modeUrlInput.addEventListener("change", applyInputMode);
+analyzeBtn.addEventListener("click", analyzeByCurrentMode);
 resetBtn.addEventListener("click", resetAll);
 
 hideAnalysisResults();
+applyInputMode();
