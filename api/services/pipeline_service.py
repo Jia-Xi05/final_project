@@ -9,6 +9,7 @@ from modules.aggregator import RiskAggregator
 from modules.detectors.scrfd_onnx_detector import SCRFDONNXDetector
 from modules.detectors.yolov8_onnx_detector import YOLOv8ONNXDetector
 from modules.module_a import ModuleAOpenClipSerpApi
+from modules.module_b import ModuleBTruFor
 from modules.module_c import ModuleCOcrSerpApiRoi
 from modules.router import VisionRouter
 from utils.image_utils import load_image, save_image
@@ -17,6 +18,7 @@ _YOLO_DETECTOR: YOLOv8ONNXDetector | None = None
 _SCRFD_DETECTOR: SCRFDONNXDetector | None = None
 _ROUTER: VisionRouter | None = None
 _MODULE_A: ModuleAOpenClipSerpApi | None = None
+_MODULE_B: ModuleBTruFor | None = None
 _MODULE_C: ModuleCOcrSerpApiRoi | None = None
 _AGGREGATOR: RiskAggregator | None = None
 
@@ -49,6 +51,13 @@ def get_module_a() -> ModuleAOpenClipSerpApi:
     return _MODULE_A
 
 
+def get_module_b() -> ModuleBTruFor:
+    global _MODULE_B
+    if _MODULE_B is None:
+        _MODULE_B = ModuleBTruFor()
+    return _MODULE_B
+
+
 def get_module_c() -> ModuleCOcrSerpApiRoi:
     global _MODULE_C
     if _MODULE_C is None:
@@ -69,15 +78,18 @@ def run_full_pipeline(image_path: str | Path) -> Dict[str, Any]:
 
     router = get_router()
     module_a = get_module_a()
+    module_b = get_module_b()
     module_c = get_module_c()
     aggregator = get_aggregator()
 
     router_result = router.run(image)
     module_a_result = module_a.run(image_path=image_path, route_result=router_result)
+    module_b_result = module_b.run(image_path=image_path, route_result=router_result)
     module_c_result = module_c.run(image_path=image_path, image=image, route_result=router_result)
-    final_result = aggregator.aggregate(router_result, module_a_result, module_c_result)
+    final_result = aggregator.aggregate(router_result, module_a_result, module_b_result, module_c_result)
 
     annotated = router.annotate(image, router_result)
+    annotated = module_b.annotate(annotated, module_b_result)
     annotated = module_c.annotate(annotated, module_c_result)
 
     output_name = f"pipeline_{image_path.stem}_{uuid4().hex[:8]}.jpg"
@@ -86,8 +98,8 @@ def run_full_pipeline(image_path: str | Path) -> Dict[str, Any]:
 
     return {
         "status": "success",
-        "module": "router_a_c_aggregator_pipeline",
-        "pipeline_name": "Router + Module A + Module C + Aggregator",
+        "module": "router_a_b_c_aggregator_pipeline",
+        "pipeline_name": "Router + Module A + Module B (TruFor) + Module C + Aggregator",
         "input_filename": image_path.name,
         "annotated_filename": output_name,
         "num_detections": router_result["num_detections"],
@@ -105,9 +117,15 @@ def run_full_pipeline(image_path: str | Path) -> Dict[str, Any]:
         "modules": {
             "router": router_result,
             "a": module_a_result,
+            "b": module_b_result,
             "c": module_c_result,
             "aggregator": final_result,
         },
+        "trufor_score": module_b_result.get("trufor_score"),
+        "trufor_verdict": module_b_result.get("trufor_verdict"),
+        "trufor_map_url": f"/api/outputs/{module_b_result['map_filename']}" if module_b_result.get("map_filename") else None,
+        "trufor_conf_url": f"/api/outputs/{module_b_result['conf_filename']}" if module_b_result.get("conf_filename") else None,
+        "trufor_mask_url": f"/api/outputs/{module_b_result['mask_filename']}" if module_b_result.get("mask_filename") else None,
         "summary": {
             "headline": final_result["headline"],
             "route_label": router_result["route_label"],

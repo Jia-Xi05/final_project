@@ -83,3 +83,28 @@ SCAM_RISK_LABELS = [
     ).split(",")
     if label.strip()
 ]
+
+# ===== Module B / TruFor =====
+TRUFOR_ENABLE = os.getenv("TRUFOR_ENABLE", "1") == "1"
+TRUFOR_MODEL_DIR = Path(os.getenv("TRUFOR_MODEL_DIR", str(MODEL_DIR / "trufor"))).resolve()
+TRUFOR_REPO_DIR = Path(os.getenv("TRUFOR_REPO_DIR", str(TRUFOR_MODEL_DIR / "TruFor"))).resolve()
+TRUFOR_WORK_DIR = Path(os.getenv("TRUFOR_WORK_DIR", str(TRUFOR_REPO_DIR / "TruFor_train_test"))).resolve()
+TRUFOR_MODEL_FILE = Path(
+    os.getenv(
+        "TRUFOR_MODEL_FILE",
+        str(TRUFOR_WORK_DIR / "pretrained_models" / "trufor.pth.tar"),
+    )
+).resolve()
+TRUFOR_WEIGHTS_ZIP_URL = os.getenv(
+    "TRUFOR_WEIGHTS_ZIP_URL",
+    "https://www.grip.unina.it/download/prog/TruFor/TruFor_weights.zip",
+).strip()
+TRUFOR_EXP_NAME = os.getenv("TRUFOR_EXP_NAME", "trufor_ph3")
+TRUFOR_GPU_ID = os.getenv("TRUFOR_GPU_ID", "-1")
+TRUFOR_TIMEOUT_SEC = int(os.getenv("TRUFOR_TIMEOUT_SEC", "240"))
+TRUFOR_OUT_DIR = RUNS_DIR / "trufor_out"
+TRUFOR_AUTO_DOWNLOAD_WEIGHTS = os.getenv("TRUFOR_AUTO_DOWNLOAD_WEIGHTS", "1") == "1"
+TRUFOR_WEIGHTS_ZIP_PATH = TRUFOR_MODEL_DIR / "TruFor_weights.zip"
+
+TRUFOR_MODEL_DIR.mkdir(parents=True, exist_ok=True)
+TRUFOR_OUT_DIR.mkdir(parents=True, exist_ok=True)

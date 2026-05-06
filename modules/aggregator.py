@@ -10,6 +10,7 @@ class RiskAggregator:
         self,
         router_result: Dict[str, Any],
         module_a_result: Dict[str, Any],
+        module_b_result: Dict[str, Any],
         module_c_result: Dict[str, Any],
     ) -> Dict[str, Any]:
         risk_score = 0.0
@@ -42,6 +43,13 @@ class RiskAggregator:
             risk_score += min(0.5, router_result["num_faces"] * 0.15)
         if router_result["num_detections"] > 0:
             risk_score += min(0.4, router_result["num_detections"] * 0.08)
+
+        if module_b_result.get("status") == "success" and module_b_result.get("trufor_score") is not None:
+            trufor_score = float(module_b_result["trufor_score"])
+            risk_score += min(1.6, max(0.0, trufor_score) * 1.6)
+            evidence.append(f"Module B TruFor score contributed to risk: {trufor_score:.3f}.")
+        elif router_result["routing_flags"]["run_deepfake_branch"]:
+            limitations.append("Deepfake route selected but TruFor result is unavailable.")
 
         serpapi_c = module_c_result.get("serpapi_summary", {})
         if serpapi_c.get("available") and serpapi_c.get("exact_match_count", 0) == 0:

@@ -112,12 +112,12 @@
           <article class="module-card">
             <div class="module-title-row">
               <div>
-                <span class="module-tag">Module A</span>
-                <h3>OpenCLIP + SerpAPI</h3>
+                <span class="module-tag">Module B</span>
+                <h3>Deepfake Check + TruFor</h3>
               </div>
               <strong id="moduleBStatus">-</strong>
             </div>
-            <p id="moduleBSummary" class="module-summary">Awaiting output.</p>
+            <p id="moduleBSummary" class="module-summary">Awaiting TruFor output.</p>
             <div class="chip-list" id="moduleBChips"></div>
           </article>
 
@@ -153,10 +153,29 @@
             <div class="section-kicker">Aggregator</div>
             <h3>Final Decision Report</h3>
             <p id="reportText" class="report-block">Awaiting report.</p>
+            <h4>TruFor Output</h4>
+            <p id="truforText" class="mono-block">-</p>
             <h4>OCR Text</h4>
             <p id="ocrText" class="mono-block">-</p>
             <h4>Evidence Highlights</h4>
             <ul id="evidenceList" class="evidence-list"></ul>
+          </article>
+        </div>
+
+        <div class="evidence-layout">
+          <article class="panel-card">
+            <div class="section-kicker">Module B Output</div>
+            <h3>TruFor Maps</h3>
+            <div class="image-grid">
+              <figure class="image-card">
+                <figcaption>Localization Map</figcaption>
+                <img id="truforMapImg" alt="TruFor localization map" />
+              </figure>
+              <figure class="image-card">
+                <figcaption>Confidence / Mask</figcaption>
+                <img id="truforConfImg" alt="TruFor confidence or mask map" />
+              </figure>
+            </div>
           </article>
         </div>
 

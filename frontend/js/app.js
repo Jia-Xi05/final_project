@@ -38,11 +38,14 @@ const moduleCChips = document.getElementById("moduleCChips");
 const originalResultImg = document.getElementById("originalResultImg");
 const annotatedResultImg = document.getElementById("annotatedResultImg");
 const reportText = document.getElementById("reportText");
+const truforText = document.getElementById("truforText");
 const ocrText = document.getElementById("ocrText");
 const evidenceList = document.getElementById("evidenceList");
 const detectionTableBody = document.getElementById("detectionTableBody");
 const faceTableBody = document.getElementById("faceTableBody");
 const visionScoreTableBody = document.getElementById("visionScoreTableBody");
+const truforMapImg = document.getElementById("truforMapImg");
+const truforConfImg = document.getElementById("truforConfImg");
 
 function formatSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -89,10 +92,13 @@ function hideAnalysisResults() {
   moduleCStatus.textContent = "-";
   moduleCSummary.textContent = "Awaiting output.";
   reportText.textContent = "Awaiting report.";
+  truforText.textContent = "-";
   ocrText.textContent = "-";
   evidenceList.innerHTML = "<li>No evidence yet.</li>";
   clearImage(originalResultImg);
   clearImage(annotatedResultImg);
+  clearImage(truforMapImg);
+  clearImage(truforConfImg);
   resetChipContainer(moduleAChips, "No labels yet");
   resetChipContainer(moduleBChips, "No face metrics yet");
   resetChipContainer(moduleCChips, "No fusion signals yet");
@@ -220,6 +226,7 @@ function renderAnalysisResult(result) {
   const modules = result.modules || {};
   const router = modules.router || {};
   const moduleA = modules.a || {};
+  const moduleB = modules.b || {};
   const moduleC = modules.c || {};
   const aggregator = modules.aggregator || {};
 
@@ -233,8 +240,8 @@ function renderAnalysisResult(result) {
 
   moduleAStatus.textContent = router.status || "-";
   moduleASummary.textContent = router.summary || "No router summary.";
-  moduleBStatus.textContent = moduleA.status || "-";
-  moduleBSummary.textContent = moduleA.summary || "No Module A summary.";
+  moduleBStatus.textContent = moduleB.status || "-";
+  moduleBSummary.textContent = moduleB.summary || "No Module B summary.";
   moduleCStatus.textContent = moduleC.status || "-";
   moduleCSummary.textContent = moduleC.summary || "No Module C summary.";
 
@@ -253,8 +260,9 @@ function renderAnalysisResult(result) {
   renderChips(
     moduleBChips,
     [
-      ...(moduleA.signals || []),
-      ...(moduleA.serpapi_summary?.top_sources || []).slice(0, 3),
+      moduleB.trufor_score != null ? `score ${Number(moduleB.trufor_score).toFixed(3)}` : "score n/a",
+      moduleB.trufor_verdict ? `verdict ${moduleB.trufor_verdict}` : "verdict n/a",
+      ...(moduleB.error ? [moduleB.error] : []),
     ],
     (item) => item
   );
@@ -270,7 +278,22 @@ function renderAnalysisResult(result) {
   originalResultImg.src = result.original_image_url;
   annotatedResultImg.src = result.annotated_image_url;
   reportText.textContent = result.report || aggregator.report || "No report generated.";
+  truforText.textContent = moduleB.trufor_score != null
+    ? `score=${Number(moduleB.trufor_score).toFixed(3)} | verdict=${moduleB.trufor_verdict || "n/a"}`
+    : (moduleB.summary || "No TruFor output.");
   ocrText.textContent = moduleC.ocr_text || "No OCR text extracted.";
+  if (result.trufor_map_url) {
+    truforMapImg.src = result.trufor_map_url;
+  } else {
+    clearImage(truforMapImg);
+  }
+  if (result.trufor_conf_url) {
+    truforConfImg.src = result.trufor_conf_url;
+  } else if (result.trufor_mask_url) {
+    truforConfImg.src = result.trufor_mask_url;
+  } else {
+    clearImage(truforConfImg);
+  }
 
   const evidence = aggregator.evidence || moduleC.evidence || [];
   evidenceList.innerHTML = evidence.length

@@ -12,3 +12,24 @@ open-clip-torch
 paddlepaddle
 paddleocr
 serpapi
+
+# TruFor runtime basics
+yacs
+timm
+tqdm
+pyyaml
+scipy
+scikit-image
+matplotlib
+albumentations
+tensorboardX
+torch-dct
+mmcls
+mmsegmentation
+addict
+prettytable
+
+# TruFor optional/advanced dependencies:
+# - openmim
+# - mmcv-full (install per CUDA/CPU and platform from official mmcv docs)
+# - jpegio (often requires platform-specific build tools)

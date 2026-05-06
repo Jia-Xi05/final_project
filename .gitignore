@@ -14,5 +14,9 @@ runs/*
 .ipynb_checkpoints/
 modules/notebooks/*.ipynb
 
+models/trufor/TruFor_weights.zip
+models/trufor/weights/
+models/trufor/TruFor/TruFor_train_test/pretrained_models/trufor.pth.tar
+
 .DS_Store
 Thumbs.db
