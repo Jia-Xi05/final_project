@@ -1,3 +1,4 @@
+# Core runtime dependencies (recommended with Python 3.11)
 flask
 numpy
 opencv-python
@@ -9,27 +10,32 @@ python-dotenv
 requests
 google-genai
 open-clip-torch
-paddlepaddle
-paddleocr
 serpapi
 
-# TruFor runtime basics
-yacs
-timm
-tqdm
-pyyaml
-scipy
-scikit-image
-matplotlib
-albumentations
-tensorboardX
-torch-dct
-mmcls
-mmsegmentation
-addict
-prettytable
+# Optional OCR branch dependencies.
+# Install these on Python 3.11 for better compatibility.
+paddlepaddle; python_version < "3.12"
+paddleocr; python_version < "3.12"
 
-# TruFor optional/advanced dependencies:
+# Optional TruFor-related dependencies.
+# These are not required for the baseline API startup and may need extra
+# platform-specific setup in the external TruFor repo.
+yacs; python_version < "3.12"
+timm; python_version < "3.12"
+tqdm; python_version < "3.12"
+pyyaml; python_version < "3.12"
+scipy; python_version < "3.12"
+scikit-image; python_version < "3.12"
+matplotlib; python_version < "3.12"
+albumentations; python_version < "3.12"
+tensorboardX; python_version < "3.12"
+torch-dct; python_version < "3.12"
+mmcls; python_version < "3.12"
+mmsegmentation; python_version < "3.12"
+addict; python_version < "3.12"
+prettytable; python_version < "3.12"
+
+# TruFor optional/advanced dependencies (manual install if needed):
 # - openmim
 # - mmcv-full (install per CUDA/CPU and platform from official mmcv docs)
 # - jpegio (often requires platform-specific build tools)
