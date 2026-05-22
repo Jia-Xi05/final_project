@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 from pathlib import Path
 from typing import Any, Dict, List
+import cv2  # 新增 cv2 用於影像縮放
 
 from config.settings import IMGBB_API_KEY, SCAM_OCR_LANG, SERPAPI_API_KEY
 from utils.image_utils import crop_bbox, draw_text, save_image
@@ -37,8 +38,13 @@ class ModuleCOcrSerpApiRoi:
         route_result: Dict[str, Any],
     ) -> Dict[str, Any]:
         image_path = Path(image_path)
+        
+        # 保留 ROI 萃取功能，供其他模組或後續分析使用
         roi_result = self._extract_rois(image_path, image, route_result)
+        
+        # 啟動全圖掃描 (傳入原始影像路徑)
         ocr_result = self._run_ocr(image_path)
+        
         serpapi_result = self._search_sources(image_path) if route_result["routing_flags"]["run_module_c"] else {
             "available": False,
             "exact_match_count": 0,
@@ -48,6 +54,7 @@ class ModuleCOcrSerpApiRoi:
 
         suspicious_keywords = self._find_suspicious_keywords(ocr_result["text"])
         evidence = list(roi_result["evidence"])
+        
         if suspicious_keywords:
             evidence.append(f"OCR suspicious keywords: {', '.join(suspicious_keywords[:5])}.")
         if serpapi_result["available"]:
@@ -121,19 +128,62 @@ class ModuleCOcrSerpApiRoi:
 
     def _run_ocr(self, image_path: Path) -> Dict[str, Any]:
         if self.ocr_engine is None:
+            print("❌ [DEBUG OCR] 引擎未初始化！")
             return {"available": False, "text": "", "error": self.ocr_init_error or "OCR engine unavailable."}
 
         try:
-            results = self.ocr_engine.predict(str(image_path))
+            print(f"🚀 [DEBUG OCR] 準備讀取圖片: {image_path}")
+            img = cv2.imread(str(image_path))
+            
+            if img is None:
+                return {"available": False, "text": "", "error": "無法讀取圖片檔案。"}
+
+            # 【防卡死保護】限制最大寬度，降低 CPU 運算負擔
+            max_width = 800
+            if img.shape[1] > max_width:
+                ratio = max_width / float(img.shape[1])
+                new_height = int(img.shape[0] * ratio)
+                img = cv2.resize(img, (max_width, new_height), interpolation=cv2.INTER_AREA)
+                print(f"📉 [DEBUG OCR] 圖片過大，已等比例縮小至 {max_width}x{new_height}")
+
+            # 執行預測
+            results = self.ocr_engine.predict(img)
             lines: List[str] = []
-            for result in results or []:
-                for item in result.get("rec_texts", []) or []:
-                    text = str(item).strip()
-                    if text:
-                        lines.append(text)
-            return {"available": True, "text": " ".join(lines)}
+            
+            # 【高相容解析器】相容新舊版 PaddleOCR / PaddleX 輸出格式
+            if results:
+                results_list = list(results)
+                for result in results_list:
+                    if hasattr(result, 'get') and result.get("rec_texts"):
+                        for item in result.get("rec_texts", []):
+                            text = str(item).strip()
+                            if text:
+                                lines.append(text)
+                    elif hasattr(result, 'text'):
+                         lines.append(str(result.text).strip())
+                    elif isinstance(result, list):
+                        for line in result:
+                            if isinstance(line, list) and len(line) == 2 and isinstance(line[1], tuple):
+                                text = str(line[1][0]).strip()
+                                if text:
+                                    lines.append(text)
+                    elif isinstance(result, dict):
+                         for key, val in result.items():
+                             if 'text' in str(key).lower():
+                                 if isinstance(val, list):
+                                     lines.extend([str(v).strip() for v in val if str(v).strip()])
+                                 else:
+                                     lines.append(str(val).strip())
+
+            final_text = " ".join(lines)
+            print(f"✅ [DEBUG OCR] 成功解析！最終文字: '{final_text}'")
+            return {"available": True, "text": final_text}
+            
         except Exception as exc:
-            return {"available": False, "text": "", "error": str(exc)}
+            import traceback
+            print(f"🔥 [DEBUG OCR] 發生嚴重錯誤: {exc}")
+            traceback.print_exc()
+            return {"available": False, "text": "", "error": f"OCR 解析錯誤: {str(exc)}"}
 
     def _search_sources(self, image_path: Path) -> Dict[str, Any]:
         if not IMGBB_API_KEY or not SERPAPI_API_KEY:
@@ -187,6 +237,7 @@ class ModuleCOcrSerpApiRoi:
             return PaddleOCR(
                 lang=SCAM_OCR_LANG,
                 device="cpu",
+                enable_mkldnn=False, # 【防崩潰保護】關閉 Intel 加速器，避免新版架構引發 C++ 錯誤
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
                 use_textline_orientation=False,
